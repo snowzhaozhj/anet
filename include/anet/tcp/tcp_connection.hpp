@@ -6,10 +6,11 @@
 
 #include <asio/ip/tcp.hpp>
 #include <asio/write.hpp>
+#include <asio/read.hpp>
 
 namespace anet::tcp {
 
-using asio::ip::tcp;
+using Tcp = asio::ip::tcp;
 
 class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
  public:
@@ -32,8 +33,11 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
     DoClose();
   }
 
-  tcp::socket &GetSocket() { return socket_; }
-  tcp::endpoint GetRemoteEndpoint() {
+  Tcp::socket &GetSocket() { return socket_; }
+  Tcp::endpoint GetLocalEndpoint() {
+    return socket_.local_endpoint();
+  }
+  Tcp::endpoint GetRemoteEndpoint() {
     return socket_.remote_endpoint();
   }
 
@@ -46,6 +50,10 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
 
   void SetReadTimeout(util::Duration timeout) { read_timeout_ = timeout; }
   void SetWriteTimeout(util::Duration timeout) { write_timeout_ = timeout; }
+
+  void SetContext(const std::any &context) { context_ = context; }
+  const std::any &GetContext() const { return context_; }
+  std::any &GetContext() { return context_; }
 
   void Start() {
     DoRead();
@@ -75,6 +83,31 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
             }
           }
         });
+  }
+  /// @brief 异步读取n个字符
+  /// @note 会覆盖read_buffer中的数据
+  void DoRead(std::size_t n) {
+    if (read_buffer_.size() < n) {
+      read_buffer_.resize(n);
+    }
+    if (read_timeout_ != util::Duration(0)) {
+      timeout_timer_.expires_after(read_timeout_);
+      timeout_timer_.async_wait([this](std::error_code) { DoClose(); });
+    }
+    asio::async_read(socket_,
+                     asio::buffer(read_buffer_, n),
+                     [this, n, self = shared_from_this()](std::error_code ec, std::size_t) {
+                       if (ec) {
+                         DoClose();
+                       } else {
+                         if (read_timeout_ != util::Duration(0)) {
+                           timeout_timer_.cancel();
+                         }
+                         if (read_callback_) {
+                           read_callback_(self, std::string_view(read_buffer_.data(), n));
+                         }
+                       }
+                     });
   }
 
   /// @brief 关闭socket
@@ -138,7 +171,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
     return !write_buffer_.GetActiveBuffer().empty();
   }
 
-  tcp::socket socket_;
+  Tcp::socket socket_;
   bool closed_; ///< socket是否被关闭
 
   std::vector<char> read_buffer_;
@@ -151,6 +184,8 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   ReadCallback read_callback_;
   WriteCallback write_callback_;
   CloseCallback close_callback_;
+
+  std::any context_;  ///< 用于传递上下文信息
 };
 
 using TcpConnectionPtr = TcpConnection::TcpConnectionPtr;

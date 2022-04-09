@@ -9,6 +9,7 @@ int main() {
 //  client.SetConnectTimeout(10s);
   client.SetNewConnCallback([](const anet::tcp::TcpConnectionPtr &conn) {
     std::cout << "Connect to " << conn->GetRemoteEndpoint() << std::endl;
+    conn->Send("GET / HTTP/1.1\r\n\r\n");
 //    conn->Send("Hello, world");
   });
   client.SetConnReadCallback([](const anet::tcp::TcpConnectionPtr &conn, std::string_view data) {
@@ -16,6 +17,6 @@ int main() {
 //    conn->Send(data);
     conn->DoRead();
   });
-  client.AsyncConnect("localhost", "9987");
+  client.AsyncConnect("www.baidu.com", "80");
   io_context.run();
 }

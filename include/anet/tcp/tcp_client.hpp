@@ -19,7 +19,7 @@ class TcpClient : public TcpConnectionSetter {
         connection_(std::make_shared<TcpConnection>(io_context)),
         connect_timeout_(0),
         timeout_timer_(io_context),
-        retry_(true),
+        retry_(false),
         retry_delay_(kRetryInitDelay),
         retry_timer_(io_context) {}
 
@@ -27,12 +27,12 @@ class TcpClient : public TcpConnectionSetter {
   void SetRetry(bool retry) { retry_ = retry; }
 
   void AsyncConnect(std::string_view host, std::string_view service) {
-    resolver_.async_resolve(host, service, [this](std::error_code ec, const tcp::resolver::results_type &endpoints) {
+    resolver_.async_resolve(host, service, [this](std::error_code ec, const Tcp::resolver::results_type &endpoints) {
       AsyncConnect(endpoints);
     });
   }
 
-  void AsyncConnect(const tcp::resolver::results_type &endpoints) {
+  void AsyncConnect(const Tcp::resolver::results_type &endpoints) {
     InitConnection(connection_);
     endpoints_ = endpoints;
     if (connect_timeout_ != util::Duration(0)) {
@@ -47,6 +47,9 @@ class TcpClient : public TcpConnectionSetter {
 
     DoConnect();
   }
+
+  [[nodiscard]] const TcpConnectionPtr &GetConnection() const { return connection_; }
+
  private:
   void DoConnect() {
     asio::async_connect(connection_->GetSocket(),
@@ -70,8 +73,8 @@ class TcpClient : public TcpConnectionSetter {
   }
 
   asio::io_context &io_context_;
-  tcp::resolver resolver_;
-  tcp::resolver::results_type endpoints_;
+  Tcp::resolver resolver_;
+  Tcp::resolver::results_type endpoints_;
   TcpConnectionPtr connection_;
 
   util::Duration connect_timeout_;

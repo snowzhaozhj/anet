@@ -14,10 +14,10 @@ class TcpServer : public TcpConnectionSetter {
   }
 
   void Listen(std::string_view address, std::string_view port) {
-    tcp::resolver resolver(io_context_pool_.GetIOContext());
-    tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
+    Tcp::resolver resolver(io_context_pool_.GetIOContext());
+    Tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
     acceptor_.open(endpoint.protocol());
-    acceptor_.set_option(tcp::acceptor::reuse_address(true));
+    acceptor_.set_option(Tcp::acceptor::reuse_address(true));
     acceptor_.bind(endpoint);
     acceptor_.listen();
     DoAccept();
@@ -47,7 +47,7 @@ class TcpServer : public TcpConnectionSetter {
   }
 
   util::IOContextPool io_context_pool_;
-  tcp::acceptor acceptor_;
+  Tcp::acceptor acceptor_;
 };
 
 } // namespace anet::tcp
