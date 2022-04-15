@@ -63,7 +63,6 @@ class TcpClient : public TcpConnectionSetter {
                             if (new_conn_callback_) {
                               new_conn_callback_(connection_);
                             }
-                            connection_->Start();
                           } else {
                             if (retry_) {
                               retry_timer_.expires_after(retry_delay_);

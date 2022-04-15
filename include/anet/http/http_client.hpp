@@ -27,12 +27,9 @@ class HttpClient {
     });
   }
 
-  void SetResponseCallback(const ResponseCallback &cb) {
+  /// @note 只能同时调用一次，后续还要发送请求的话，请在callback里进行再次调用该函数
+  void AsyncRequest(const HttpRequest &request, const ResponseCallback &cb) {
     response_callback_ = cb;
-  }
-
-  /// @note 在调用此方法前，请先调用Bind函数绑定好host和service
-  void AsyncRequest(const HttpRequest &request) {
     request.AddHeader("Host", tcp_client_.GetHost());
     auto content = request.SerializedToString();
     if (connected_) {
@@ -82,7 +79,7 @@ class HttpClient {
     }
   }
   void HandleConnWrite(const tcp::TcpConnectionPtr &conn) {
-    // do nothing
+    conn->DoRead();
   }
   void HandleConnClose(const tcp::TcpConnectionPtr &conn) {
     connected_ = false;
