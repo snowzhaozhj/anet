@@ -152,11 +152,12 @@ class HttpRequestParser {
         parse_status_ = ParseStatus::ParseChunkData;
         return true;
       case ParseStatus::ParseChunkData:
-        if (c == kCR) {
+        if (buffer1.length() == chunk_length_) {
           parse_status_ = ParseStatus::ParseCRLF5;
-          return FillChunkData();
+          FillChunkData();
+        } else {
+          buffer1.push_back(c);
         }
-        buffer1.push_back(c);
         return true;
       case ParseStatus::ParseCRLF5:
         if (c != kLF) return false;
@@ -218,12 +219,10 @@ class HttpRequestParser {
     return true;
   }
 
-  bool FillChunkData() {
-    if (buffer1.size() != chunk_length_) return false;
+  void FillChunkData() {
     request_->GetContent().append(buffer1);
     content_length_ += chunk_length_;
     buffer1.clear();
-    return true;
   }
 
   /// @brief chunk传输完毕后，填充HttpRequest里的Content-Length字段
