@@ -19,7 +19,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
   using ReadCallback = std::function<void(const TcpConnectionPtr &, std::string_view data)>;
   using WriteCallback = std::function<void(const TcpConnectionPtr &)>;
-  using CloseCallback = std::function<void(const TcpConnectionPtr &)>;
+  using CloseCallback = std::function<void(const TcpConnection *)>;
 
   explicit TcpConnection(asio::io_context &io_context)
       : socket_(io_context),
@@ -114,11 +114,12 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   void DoClose() {
     if (closed_) return;
     std::error_code ec;
+    socket_.shutdown(asio::socket_base::shutdown_both, ec);
     socket_.close(ec);
     timeout_timer_.cancel();
     closed_ = true;
     if (close_callback_) {
-      CloseCallback(shared_from_this());
+      close_callback_(this);
     }
   }
 
