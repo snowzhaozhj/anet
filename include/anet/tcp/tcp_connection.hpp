@@ -122,6 +122,11 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
     }
   }
 
+  void DoShutdown(Tcp::socket::shutdown_type what) {
+    std::error_code ec;
+    socket_.shutdown(what, ec);
+  }
+
   /// @brief 向对端发送数据
   /// @note 非线程安全
   void Send(std::string_view s) {

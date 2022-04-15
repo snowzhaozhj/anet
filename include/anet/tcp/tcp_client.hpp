@@ -13,8 +13,10 @@ class TcpClient : public TcpConnectionSetter {
  public:
   static constexpr util::Duration kRetryInitDelay = std::chrono::milliseconds(500);
 
-  explicit TcpClient(asio::io_context &io_context)
+  explicit TcpClient(asio::io_context &io_context, std::string host, std::string service)
       : io_context_(io_context),
+        host_(std::move(host)),
+        service_(std::move(service)),
         resolver_(io_context),
         connection_(std::make_shared<TcpConnection>(io_context)),
         connect_timeout_(0),
@@ -26,15 +28,17 @@ class TcpClient : public TcpConnectionSetter {
   void SetConnectTimeout(util::Duration timeout) { connect_timeout_ = timeout; }
   void SetRetry(bool retry) { retry_ = retry; }
 
-  void AsyncConnect(std::string_view host, std::string_view service) {
-    resolver_.async_resolve(host, service, [this](std::error_code ec, const Tcp::resolver::results_type &endpoints) {
+  [[nodiscard]] const std::string &GetHost() const { return host_; }
+  [[nodiscard]] const std::string &GetService() const { return service_; }
+
+  void AsyncConnect() {
+    resolver_.async_resolve(host_, service_, [this](std::error_code ec, const Tcp::resolver::results_type &endpoints) {
       AsyncConnect(endpoints);
     });
   }
 
   void AsyncConnect(const Tcp::resolver::results_type &endpoints) {
     InitConnection(connection_);
-    endpoints_ = endpoints;
     if (connect_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(connect_timeout_);
       timeout_timer_.async_wait([this](std::error_code) {
@@ -45,15 +49,15 @@ class TcpClient : public TcpConnectionSetter {
       });
     }
 
-    DoConnect();
+    DoConnect(endpoints);
   }
 
   [[nodiscard]] const TcpConnectionPtr &GetConnection() const { return connection_; }
 
  private:
-  void DoConnect() {
+  void DoConnect(const Tcp::resolver::results_type &endpoints) {
     asio::async_connect(connection_->GetSocket(),
-                        endpoints_,
+                        endpoints,
                         [this](std::error_code ec, auto &&) {
                           if (!ec) {
                             if (new_conn_callback_) {
@@ -65,7 +69,7 @@ class TcpClient : public TcpConnectionSetter {
                               retry_timer_.expires_after(retry_delay_);
                               retry_delay_ *= 2;
                               retry_timer_.async_wait([this](std::error_code) {
-                                DoConnect();
+                                AsyncConnect();
                               });
                             }
                           }
@@ -73,8 +77,9 @@ class TcpClient : public TcpConnectionSetter {
   }
 
   asio::io_context &io_context_;
+  std::string host_;
+  std::string service_;
   Tcp::resolver resolver_;
-  Tcp::resolver::results_type endpoints_;
   TcpConnectionPtr connection_;
 
   util::Duration connect_timeout_;

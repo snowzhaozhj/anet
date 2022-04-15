@@ -5,7 +5,7 @@ using namespace std::chrono_literals;
 
 int main() {
   asio::io_context io_context;
-  anet::tcp::TcpClient client(io_context);
+  anet::tcp::TcpClient client(io_context, "www.baidu.com", "80");
 //  client.SetConnectTimeout(10s);
   client.SetNewConnCallback([](const anet::tcp::TcpConnectionPtr &conn) {
     std::cout << "Connect to " << conn->GetRemoteEndpoint() << std::endl;
@@ -13,10 +13,11 @@ int main() {
 //    conn->Send("Hello, world");
   });
   client.SetConnReadCallback([](const anet::tcp::TcpConnectionPtr &conn, std::string_view data) {
+//    if (data.length() == 0) return;
     std::cout << "Received: " << data << std::endl;
 //    conn->Send(data);
     conn->DoRead();
   });
-  client.AsyncConnect("www.baidu.com", "80");
+  client.AsyncConnect();
   io_context.run();
 }

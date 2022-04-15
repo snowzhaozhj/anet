@@ -10,8 +10,8 @@ class HttpClient {
  public:
   using ResponseCallback = std::function<void(HttpClient &, const HttpReply &)>;
 
-  explicit HttpClient(asio::io_context &io_context)
-      : tcp_client_(io_context),
+  explicit HttpClient(asio::io_context &io_context, std::string host, std::string service)
+      : tcp_client_(io_context, std::move(host), std::move(service)),
         connected_(false) {
     tcp_client_.SetNewConnCallback([this](const tcp::TcpConnectionPtr &conn) {
       HandleNewConn(conn);
@@ -27,18 +27,13 @@ class HttpClient {
     });
   }
 
-  void Bind(std::string_view host, std::string_view service) {
-    host_ = host;
-    service_ = service;
-  }
-
   void SetResponseCallback(const ResponseCallback &cb) {
     response_callback_ = cb;
   }
 
   /// @note 在调用此方法前，请先调用Bind函数绑定好host和service
   void AsyncRequest(const HttpRequest &request) {
-    request.AddHeader("Host", host_);
+    request.AddHeader("Host", tcp_client_.GetHost());
     auto content = request.SerializedToString();
     if (connected_) {
       tcp_client_.GetConnection()->Send(content);
@@ -47,7 +42,7 @@ class HttpClient {
         HandleNewConn(conn);
         conn->Send(c);
       });
-      tcp_client_.AsyncConnect(host_, service_);
+      tcp_client_.AsyncConnect();
     }
   }
 
@@ -95,8 +90,6 @@ class HttpClient {
 
   tcp::TcpClient tcp_client_;
   bool connected_;
-  std::string host_;
-  std::string service_;
 
   ResponseCallback response_callback_;
 };

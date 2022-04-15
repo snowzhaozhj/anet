@@ -11,8 +11,7 @@ void ResponseCallback(HttpClient &client, const HttpReply &reply) {
 
 int main() {
   asio::io_context io_context;
-  HttpClient client(io_context);
-  client.Bind("www.baidu.com", "80");
+  HttpClient client(io_context, "www.baidu.com", "80");
   client.SetResponseCallback(ResponseCallback);
   HttpRequest request;
   request.SetMethod(anet::http::HttpMethod::Get);
