@@ -8,7 +8,12 @@ namespace anet::util {
 
 struct CaseInsensitiveLess {
   bool operator()(const std::string &lhs, const std::string &rhs) const {
-    return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+//    return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+    return std::lexicographical_compare(lhs.begin(), lhs.end(),
+                                        rhs.begin(), rhs.end(),
+                                        [](char a, char b) {
+                                          return std::tolower(a) < std::tolower(b);
+                                        });
   }
 };
 
