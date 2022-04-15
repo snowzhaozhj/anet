@@ -9,6 +9,7 @@ namespace anet::http {
 class HttpClient {
  public:
   using ResponseCallback = std::function<void(HttpClient &, const HttpReply &)>;
+  using CloseCallback = std::function<void(HttpClient &)>;
 
   explicit HttpClient(asio::io_context &io_context, std::string host, std::string service)
       : tcp_client_(io_context, std::move(host), std::move(service)),
@@ -26,6 +27,8 @@ class HttpClient {
       HandleConnClose(conn);
     });
   }
+
+  void SetCloseCallback(const CloseCallback &cb) { close_callback_ = cb; }
 
   /// @note 只能同时调用一次，后续还要发送请求的话，请在callback里进行再次调用该函数
   void AsyncRequest(const HttpRequest &request, const ResponseCallback &cb) {
@@ -83,12 +86,16 @@ class HttpClient {
   }
   void HandleConnClose(const tcp::TcpConnectionPtr &conn) {
     connected_ = false;
+    if (close_callback_) {
+      close_callback_(*this);
+    }
   }
 
   tcp::TcpClient tcp_client_;
   bool connected_;
 
   ResponseCallback response_callback_;
+  CloseCallback close_callback_;
 };
 
 }  // namespace anet::http
