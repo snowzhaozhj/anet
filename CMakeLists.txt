@@ -18,10 +18,12 @@ target_sources(anet
             ${ANET_INC_DIR}/anet/base/init.hpp
             ${ANET_INC_DIR}/anet/base/assert.hpp
             ${ANET_INC_DIR}/anet/base/noncopyable.hpp
+            ${ANET_INC_DIR}/anet/base/singleton.hpp
             ${ANET_INC_DIR}/anet/util/chrono.hpp
             ${ANET_INC_DIR}/anet/util/string.hpp
             ${ANET_INC_DIR}/anet/util/io_context_pool.hpp
             ${ANET_INC_DIR}/anet/util/double_buffer.hpp
+            ${ANET_INC_DIR}/anet/util/object_pool.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_connection.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_connection_setter.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_server.hpp
