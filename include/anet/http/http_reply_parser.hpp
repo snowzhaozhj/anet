@@ -154,9 +154,9 @@ class HttpReplyParser {
         if (buffer1.length() == chunk_length_) {
           parse_status_ = ParseStatus::ParseCRLF5;
           FillChunkData();
-        } else {
-          buffer1.push_back(c);
+          return c == kCR;
         }
+        buffer1.push_back(c);
         return true;
       case ParseStatus::ParseCRLF5:
         if (c != kLF) return false;
