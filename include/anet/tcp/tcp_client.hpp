@@ -18,7 +18,7 @@ class TcpClient : public TcpConnectionSetter {
         host_(std::move(host)),
         service_(std::move(service)),
         resolver_(io_context),
-        connection_(std::make_shared<TcpConnection>(io_context)),
+        connection_(),
         connect_timeout_(0),
         timeout_timer_(io_context),
         retry_(false),
@@ -38,11 +38,13 @@ class TcpClient : public TcpConnectionSetter {
   }
 
   void AsyncConnect(const Tcp::resolver::results_type &endpoints) {
-    InitConnection(connection_);
+    auto conn = std::make_shared<TcpConnection>(io_context_);
+    connection_ = conn;
+    InitConnection(conn);
     if (connect_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(connect_timeout_);
-      timeout_timer_.async_wait([this](std::error_code) {
-        connection_->DoClose();
+      timeout_timer_.async_wait([this, conn](std::error_code) {
+        conn->DoClose();
         if (retry_) {
           retry_timer_.cancel();
         }
@@ -52,16 +54,20 @@ class TcpClient : public TcpConnectionSetter {
     DoConnect(endpoints);
   }
 
-  [[nodiscard]] const TcpConnectionPtr &GetConnection() const { return connection_; }
+  [[nodiscard]] TcpConnectionPtr GetConnection() const { return connection_.lock(); }
 
  private:
   void DoConnect(const Tcp::resolver::results_type &endpoints) {
-    asio::async_connect(connection_->GetSocket(),
+    auto conn = connection_.lock();
+    asio::async_connect(conn->GetSocket(),
                         endpoints,
-                        [this](std::error_code ec, auto &&) {
+                        [this, conn](std::error_code ec, auto &&) {
                           if (!ec) {
+                            if (connect_timeout_ != util::Duration(0)) {
+                              timeout_timer_.cancel();
+                            }
                             if (new_conn_callback_) {
-                              new_conn_callback_(connection_);
+                              new_conn_callback_(conn);
                             }
                           } else {
                             if (retry_) {
@@ -79,7 +85,7 @@ class TcpClient : public TcpConnectionSetter {
   std::string host_;
   std::string service_;
   Tcp::resolver resolver_;
-  TcpConnectionPtr connection_;
+  std::weak_ptr<TcpConnection> connection_;
 
   util::Duration connect_timeout_;
   asio::steady_timer timeout_timer_;
