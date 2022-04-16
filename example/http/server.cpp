@@ -1,4 +1,5 @@
 #include <anet/http/http_server.hpp>
+#include <iostream>
 
 using anet::http::HttpConnInfo;
 using anet::http::HttpRequest;

@@ -30,6 +30,21 @@ class HttpClient {
 
   void SetCloseCallback(const CloseCallback &cb) { close_callback_ = cb; }
 
+  void AsyncGet(const std::string &url, const ResponseCallback &cb) {
+    HttpRequest request;
+    request.SetMethod(HttpMethod::Get);
+    request.SetUrl(url);
+    AsyncRequest(request, cb);
+  }
+
+  void AsyncPost(const std::string &url, const std::string &content, const ResponseCallback &cb) {
+    HttpRequest request;
+    request.SetMethod(HttpMethod::Post);
+    request.SetUrl(url);
+    request.SetContent(content);
+    AsyncRequest(request, cb);
+  }
+
   /// @note 只能同时调用一次，后续还要发送请求的话，请在callback里进行再次调用该函数
   void AsyncRequest(const HttpRequest &request, const ResponseCallback &cb) {
     response_callback_ = cb;

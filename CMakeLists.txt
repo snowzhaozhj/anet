@@ -40,6 +40,7 @@ target_sources(anet
             ${ANET_INC_DIR}/anet/http/http_route.hpp
             ${ANET_INC_DIR}/anet/http/http_server.hpp
             ${ANET_INC_DIR}/anet/http/http_client.hpp
+            ${ANET_INC_DIR}/anet/http/http_client_factory.hpp
             ${ANET_INC_DIR}/anet/anet.hpp
         PRIVATE
             ${ANET_SRC_DIR}/anet.cpp
