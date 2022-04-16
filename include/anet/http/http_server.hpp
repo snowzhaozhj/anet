@@ -19,7 +19,7 @@ class HttpServer {
     tcp_server_.SetConnWriteCallback([this](const tcp::TcpConnectionPtr &conn) {
       HandleConnWrite(conn);
     });
-    tcp_server_.SetConnCloseCallback([this](const tcp::TcpConnectionPtr &conn) {
+    tcp_server_.SetConnCloseCallback([this](const tcp::TcpConnection *conn) {
       HandleConnClose(conn);
     });
   }
@@ -84,7 +84,7 @@ class HttpServer {
   void HandleConnWrite(const tcp::TcpConnectionPtr &conn) {
     // do nothing
   }
-  void HandleConnClose(const tcp::TcpConnectionPtr &conn) {
+  void HandleConnClose(const tcp::TcpConnection *conn) {
     // do nothing
   }
 
