@@ -23,8 +23,8 @@ class HttpClient {
     tcp_client_.SetConnWriteCallback([this](const tcp::TcpConnectionPtr &conn) {
       HandleConnWrite(conn);
     });
-    tcp_client_.SetConnCloseCallback([this](const tcp::TcpConnection *conn) {
-      HandleConnClose(conn);
+    tcp_client_.SetConnCloseCallback([this](tcp::TcpConnection *conn, const tcp::Tcp::endpoint &remote_endpoint) {
+      HandleConnClose(conn, remote_endpoint);
     });
   }
 
@@ -99,7 +99,7 @@ class HttpClient {
   void HandleConnWrite(const tcp::TcpConnectionPtr &conn) {
     conn->DoRead();
   }
-  void HandleConnClose(const tcp::TcpConnection *conn) {
+  void HandleConnClose(tcp::TcpConnection *conn, const tcp::Tcp::endpoint &remote_endpoint) {
     connected_ = false;
     if (close_callback_) {
       close_callback_(*this);

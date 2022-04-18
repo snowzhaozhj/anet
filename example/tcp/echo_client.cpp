@@ -21,7 +21,7 @@ int main() {
 //    conn->Send(data);
 //    conn->Send("Hello");
   });
-  client.SetConnCloseCallback([](const anet::tcp::TcpConnection *conn) {
+  client.SetConnCloseCallback([](anet::tcp::TcpConnection *conn, const anet::tcp::Tcp::endpoint &remote_endpoint) {
     std::cout << "closed" << std::endl;
   });
   client.AsyncConnect();
