@@ -8,3 +8,8 @@ target_link_libraries(http_server anet pthread)
 add_executable(http_client http/client.cpp)
 target_link_libraries(http_client anet pthread)
 
+add_executable(udp_server udp/server.cpp)
+target_link_libraries(udp_server anet pthread)
+add_executable(udp_client udp/client.cpp)
+target_link_libraries(udp_client anet pthread)
+

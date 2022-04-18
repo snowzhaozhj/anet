@@ -24,6 +24,10 @@ target_sources(anet
             ${ANET_INC_DIR}/anet/util/io_context_pool.hpp
             ${ANET_INC_DIR}/anet/util/double_buffer.hpp
             ${ANET_INC_DIR}/anet/util/object_pool.hpp
+            ${ANET_INC_DIR}/anet/udp/udp_connection.hpp
+            ${ANET_INC_DIR}/anet/udp/udp_connection_setter.hpp
+            ${ANET_INC_DIR}/anet/udp/udp_server.hpp
+            ${ANET_INC_DIR}/anet/udp/udp_client.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_connection.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_connection_setter.hpp
             ${ANET_INC_DIR}/anet/tcp/tcp_server.hpp
