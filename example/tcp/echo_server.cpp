@@ -6,6 +6,9 @@ using anet::tcp::TcpConnectionPtr;
 
 int main() {
   TcpServer server(1);
+  server.SetNewConnCallback([](const TcpConnectionPtr &conn) {
+    conn->DoRead();
+  });
   server.SetConnReadCallback([](const TcpConnectionPtr &conn, std::string_view data) {
     conn->Send(data);
     conn->DoRead();

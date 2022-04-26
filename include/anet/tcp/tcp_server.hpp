@@ -40,7 +40,6 @@ class TcpServer : public TcpConnectionSetter {
         if (new_conn_callback_) {
           new_conn_callback_(new_conn);
         }
-        new_conn->Start();
       }
       DoAccept();
     });

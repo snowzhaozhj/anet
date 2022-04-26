@@ -55,10 +55,6 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   const std::any &GetContext() const { return context_; }
   std::any &GetContext() { return context_; }
 
-  void Start() {
-    DoRead();
-  }
-
   /// @brief 进行异步读数据
   /// @note 会覆盖read_buffer中的数据
   void DoRead() {

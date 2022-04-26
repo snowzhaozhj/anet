@@ -47,6 +47,7 @@ class HttpServer {
     conn->SetContext(std::make_any<HttpServerContext>());
     auto &context = std::any_cast<HttpServerContext &>(conn->GetContext());
     context.Init();
+    conn->DoRead();
   }
   void HandleConnRead(const tcp::TcpConnectionPtr &conn, std::string_view data) {
     auto &context = std::any_cast<HttpServerContext &>(conn->GetContext());
