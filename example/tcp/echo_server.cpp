@@ -10,7 +10,7 @@ int main() {
     conn->DoRead();
   });
   server.SetConnReadCallback([](const TcpConnectionPtr &conn, std::string_view data) {
-    conn->Send(data);
+    conn->Send(std::string(data));
     conn->DoRead();
   });
   server.Listen("localhost", "9987");

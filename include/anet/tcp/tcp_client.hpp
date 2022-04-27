@@ -12,6 +12,7 @@ namespace anet::tcp {
 class TcpClient : public TcpConnectionSetter {
  public:
   static constexpr util::Duration kRetryInitDelay = std::chrono::milliseconds(500);
+  static constexpr util::Duration kRetryMaxDelay = std::chrono::seconds(30);
 
   explicit TcpClient(asio::io_context &io_context, std::string host, std::string service)
       : io_context_(io_context),
@@ -43,10 +44,12 @@ class TcpClient : public TcpConnectionSetter {
     InitConnection(conn);
     if (connect_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(connect_timeout_);
-      timeout_timer_.async_wait([this, conn](std::error_code) {
-        conn->DoClose();
-        if (retry_) {
-          retry_timer_.cancel();
+      timeout_timer_.async_wait([this, conn](std::error_code ec) {
+        if (!ec) {
+          conn->DoClose();
+          if (retry_) {
+            retry_timer_.cancel();
+          }
         }
       });
     }
@@ -73,6 +76,9 @@ class TcpClient : public TcpConnectionSetter {
                             if (retry_) {
                               retry_timer_.expires_after(retry_delay_);
                               retry_delay_ *= 2;
+                              if (retry_delay_ > kRetryMaxDelay) {
+                                retry_delay_ = kRetryMaxDelay;
+                              }
                               retry_timer_.async_wait([this](std::error_code) {
                                 AsyncConnect();
                               });

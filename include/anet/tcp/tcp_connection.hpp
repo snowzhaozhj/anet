@@ -60,7 +60,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   void DoRead() {
     if (read_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(read_timeout_);
-      timeout_timer_.async_wait([this](std::error_code) { DoClose(); });
+      timeout_timer_.async_wait([this](std::error_code ec) { if (!ec) DoClose(); });
     }
     socket_.async_read_some(
         asio::buffer(read_buffer_),
@@ -88,7 +88,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
     }
     if (read_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(read_timeout_);
-      timeout_timer_.async_wait([this](std::error_code) { DoClose(); });
+      timeout_timer_.async_wait([this](std::error_code ec) { if (!ec) DoClose(); });
     }
     asio::async_read(socket_,
                      asio::buffer(read_buffer_, n),
@@ -127,14 +127,17 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
 
   /// @brief 向对端发送数据
   /// @note 非线程安全
-  void Send(std::string_view s) {
-    Send(s.data(), s.size());
+  void Send(const char *data, std::size_t len) {
+    write_buffer_.GetInactiveBuffer().emplace_back(data, len);
+    if (!IsWriting()) {
+      DoWrite();
+    }
   }
 
   /// @brief 向对端发送数据
   /// @note 非线程安全
-  void Send(const char *data, std::size_t len) {
-    write_buffer_.GetInactiveBuffer().append(data, len);
+  void Send(std::string &&s) {
+    write_buffer_.GetInactiveBuffer().push_back(std::move(s));
     if (!IsWriting()) {
       DoWrite();
     }
@@ -145,11 +148,14 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   void DoWrite() {
     if (write_timeout_ != util::Duration(0)) {
       timeout_timer_.expires_after(write_timeout_);
-      timeout_timer_.async_wait([this](std::error_code) { DoClose(); });
+      timeout_timer_.async_wait([this](std::error_code ec) { if (!ec) DoClose(); });
     }
     write_buffer_.SwitchBuffer();
+    for (const auto &data : write_buffer_.GetActiveBuffer()) {
+      buffer_seq_.push_back(asio::buffer(data));
+    }
     asio::async_write(socket_,
-                      asio::buffer(write_buffer_.GetActiveBuffer()),
+                      buffer_seq_,
                       [this, self = shared_from_this()](std::error_code ec, std::size_t len) {
                         if (ec) {
                           DoClose();
@@ -159,6 +165,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
                           }
                           // 已经写入完毕，可以把数据清空
                           write_buffer_.GetActiveBuffer().clear();
+                          buffer_seq_.clear();
                           if (write_callback_) {
                             write_callback_(self);
                           }
@@ -178,7 +185,8 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   bool closed_; ///< socket是否被关闭
 
   std::vector<char> read_buffer_;
-  util::DoubleBuffer<std::string> write_buffer_;
+  util::DoubleBuffer<std::vector<std::string>> write_buffer_;
+  std::vector<asio::const_buffer> buffer_seq_;
 
   util::Duration read_timeout_;
   util::Duration write_timeout_;

@@ -51,11 +51,11 @@ class HttpClient {
     request.AddHeader("Host", tcp_client_.GetHost());
     auto content = request.SerializedToString();
     if (connected_) {
-      tcp_client_.GetConnection()->Send(content);
+      tcp_client_.GetConnection()->Send(std::move(content));
     } else {
-      tcp_client_.SetNewConnCallback([this, c = std::move(content)](const tcp::TcpConnectionPtr &conn) {
+      tcp_client_.SetNewConnCallback([this, c = std::move(content)](const tcp::TcpConnectionPtr &conn) mutable {
         HandleNewConn(conn);
-        conn->Send(c);
+        conn->Send(std::move(c));
       });
       tcp_client_.AsyncConnect();
     }

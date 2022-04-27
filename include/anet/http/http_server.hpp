@@ -70,8 +70,6 @@ class HttpServer {
       if (context.request.GetHeader(kConnectionField) == kConnectionKeepAlive) {
         context.Reset();
         conn->DoRead();
-      } else {
-        conn->DoClose();
       }
     } else {  // 还未解析完成
       std::size_t n = context.parser.GetNeedByteNum();
