@@ -26,6 +26,9 @@ class HttpClient {
     tcp_client_.SetConnCloseCallback([this](tcp::TcpConnection *conn, const tcp::Tcp::endpoint &remote_endpoint) {
       HandleConnClose(conn, remote_endpoint);
     });
+    tcp_client_.SetConnErrorCallback([this](const tcp::TcpConnectionPtr &conn, std::error_code ec) {
+      HandleConnError(conn, ec);
+    });
   }
 
   void SetCloseCallback(const CloseCallback &cb) { close_callback_ = cb; }
@@ -104,6 +107,9 @@ class HttpClient {
     if (close_callback_) {
       close_callback_(*this);
     }
+  }
+  void HandleConnError(const tcp::TcpConnectionPtr &conn, std::error_code ec) {
+    // do nothing
   }
 
   tcp::TcpClient tcp_client_;

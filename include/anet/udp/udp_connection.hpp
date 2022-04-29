@@ -17,6 +17,7 @@ class UdpConnection : public std::enable_shared_from_this<UdpConnection> {
   using ReadCallback = std::function<void(const UdpConnectionPtr &, std::string_view)>;
   using WriteCallback = std::function<void(const UdpConnectionPtr &)>;
   using CloseCallback = std::function<void(const UdpConnection *)>;
+  using ErrorCallback = std::function<void(const UdpConnectionPtr &, std::error_code)>;
 
   explicit UdpConnection(Udp::socket socket)
       : socket_(std::move(socket)),
@@ -26,6 +27,7 @@ class UdpConnection : public std::enable_shared_from_this<UdpConnection> {
   void SetReadCallback(const ReadCallback &cb) { read_callback_ = cb; }
   void SetWriteCallback(const WriteCallback &cb) { write_callback_ = cb; }
   void SetCloseCallback(const CloseCallback &cb) { close_callback_ = cb; }
+  void SetErrorCallback(const ErrorCallback &cb) { error_callback_ = cb; }
 
   const Udp::endpoint &GetSenderEndpoint() const { return sender_endpoint_; }
   void SetSenderEndpoint(const Udp::endpoint &endpoint) { sender_endpoint_ = endpoint; }
@@ -35,6 +37,9 @@ class UdpConnection : public std::enable_shared_from_this<UdpConnection> {
                                sender_endpoint_,
                                [this, self = shared_from_this()](std::error_code ec, std::size_t len) {
                                  if (ec) {
+                                   if (error_callback_) {
+                                     error_callback_(self, ec);
+                                   }
                                    DoClose();
                                  } else {
                                    if (read_callback_) {
@@ -79,6 +84,9 @@ class UdpConnection : public std::enable_shared_from_this<UdpConnection> {
                           sender_endpoint_,
                           [this, self = shared_from_this()](std::error_code ec, std::size_t len) {
                             if (ec) {
+                              if (error_callback_) {
+                                error_callback_(self, ec);
+                              }
                               DoClose();
                             } else {
                               write_buffer_.GetActiveBuffer().clear();
@@ -104,6 +112,7 @@ class UdpConnection : public std::enable_shared_from_this<UdpConnection> {
   ReadCallback read_callback_;
   WriteCallback write_callback_;
   CloseCallback close_callback_;
+  ErrorCallback error_callback_;
 };
 
 using UdpConnectionPtr = UdpConnection::UdpConnectionPtr;

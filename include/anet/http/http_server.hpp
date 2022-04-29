@@ -22,6 +22,9 @@ class HttpServer {
     tcp_server_.SetConnCloseCallback([this](tcp::TcpConnection *conn, const tcp::Tcp::endpoint &remote_endpoint) {
       HandleConnClose(conn, remote_endpoint);
     });
+    tcp_server_.SetConnErrorCallback([this](const tcp::TcpConnectionPtr &conn, std::error_code ec) {
+      HandleConnError(conn, ec);
+    });
   }
 
   void Listen(std::string_view address, std::string_view port) {
@@ -84,6 +87,9 @@ class HttpServer {
     // do nothing
   }
   void HandleConnClose(tcp::TcpConnection *conn, const tcp::Tcp::endpoint &remote_endpoint) {
+    // do nothing
+  }
+  void HandleConnError(const tcp::TcpConnectionPtr &conn, std::error_code ec) {
     // do nothing
   }
 

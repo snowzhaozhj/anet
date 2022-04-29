@@ -20,6 +20,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   using ReadCallback = std::function<void(const TcpConnectionPtr &, std::string_view data)>;
   using WriteCallback = std::function<void(const TcpConnectionPtr &)>;
   using CloseCallback = std::function<void(TcpConnection *, const Tcp::endpoint &)>;
+  using ErrorCallback = std::function<void(const TcpConnectionPtr &, std::error_code)>;
 
   explicit TcpConnection(asio::io_context &io_context)
       : socket_(io_context),
@@ -47,6 +48,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   void SetWriteCallback(const WriteCallback &cb) { write_callback_ = cb; }
   /// @brief CloseCallback将会在主动调用DoClose或者在读数据和写数据失败的时候被调用
   void SetCloseCallback(const CloseCallback &cb) { close_callback_ = cb; }
+  void SetErrorCallback(const ErrorCallback &cb) { error_callback_ = cb; }
 
   void SetReadTimeout(util::Duration timeout) { read_timeout_ = timeout; }
   void SetWriteTimeout(util::Duration timeout) { write_timeout_ = timeout; }
@@ -66,6 +68,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
         asio::buffer(read_buffer_),
         [this, self = shared_from_this()](std::error_code ec, std::size_t len) {
           if (ec) {
+            if (error_callback_) {
+              error_callback_(self, ec);
+            }
             DoClose();
           } else {
             if (read_timeout_ != util::Duration(0)) {
@@ -94,6 +99,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
                      asio::buffer(read_buffer_, n),
                      [this, n, self = shared_from_this()](std::error_code ec, std::size_t) {
                        if (ec) {
+                         if (error_callback_) {
+                           error_callback_(self, ec);
+                         }
                          DoClose();
                        } else {
                          if (read_timeout_ != util::Duration(0)) {
@@ -158,6 +166,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
                       buffer_seq_,
                       [this, self = shared_from_this()](std::error_code ec, std::size_t len) {
                         if (ec) {
+                          if (error_callback_) {
+                            error_callback_(self, ec);
+                          }
                           DoClose();
                         } else {
                           if (write_timeout_ != util::Duration(0)) {
@@ -195,6 +206,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   ReadCallback read_callback_;
   WriteCallback write_callback_;
   CloseCallback close_callback_;
+  ErrorCallback error_callback_;
 
   std::any context_;  ///< 用于传递上下文信息
 };

@@ -11,11 +11,13 @@ class TcpConnectionSetter {
   using ConnReadCallback = TcpConnection::ReadCallback;
   using ConnWriteCallback = TcpConnection::WriteCallback;
   using ConnCloseCallback = TcpConnection::CloseCallback;
+  using ConnErrorCallback = TcpConnection::ErrorCallback;
 
   void SetNewConnCallback(const NewConnCallback &cb) { new_conn_callback_ = cb; }
   void SetConnReadCallback(const ConnReadCallback &cb) { conn_read_callback_ = cb; }
   void SetConnWriteCallback(const ConnWriteCallback &cb) { conn_write_callback_ = cb; }
   void SetConnCloseCallback(const ConnCloseCallback &cb) { conn_close_callback_ = cb; }
+  void SetConnErrorCallback(const ConnErrorCallback &cb) { conn_error_callback_ = cb; }
 
   void SetReadTimeout(util::Duration timeout) { read_timeout_ = timeout; }
   void SetWriteTimeout(util::Duration timeout) { write_timeout_ = timeout; }
@@ -24,6 +26,7 @@ class TcpConnectionSetter {
     conn->SetReadCallback(conn_read_callback_);
     conn->SetWriteCallback(conn_write_callback_);
     conn->SetCloseCallback(conn_close_callback_);
+    conn->SetErrorCallback(conn_error_callback_);
     conn->SetReadTimeout(read_timeout_);
     conn->SetWriteTimeout(write_timeout_);
   }
@@ -33,6 +36,7 @@ class TcpConnectionSetter {
   ConnReadCallback conn_read_callback_;
   ConnWriteCallback conn_write_callback_;
   ConnCloseCallback conn_close_callback_;
+  ConnErrorCallback conn_error_callback_;
 
   util::Duration read_timeout_{0};
   util::Duration write_timeout_{0};
