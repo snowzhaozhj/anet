@@ -11,10 +11,11 @@ namespace anet::tcp {
 
 class TcpClient : public TcpConnectionSetter {
  public:
-  static constexpr util::Duration kRetryInitDelay = std::chrono::milliseconds(500);
-  static constexpr util::Duration kRetryMaxDelay = std::chrono::seconds(30);
+  using Duration = util::Duration;
+  using ConnectTimeoutCallback = std::function<void(TcpClient &)>;
 
-  explicit TcpClient(asio::io_context &io_context, std::string host, std::string service)
+  explicit TcpClient(asio::io_context &io_context, std::string host,
+                     std::string service)
       : io_context_(io_context),
         host_(std::move(host)),
         service_(std::move(service)),
@@ -22,69 +23,61 @@ class TcpClient : public TcpConnectionSetter {
         connection_(),
         connect_timeout_(0),
         timeout_timer_(io_context),
-        retry_(false),
-        retry_delay_(kRetryInitDelay),
-        retry_timer_(io_context) {}
+        timeouted_(false) {}
 
-  void SetConnectTimeout(util::Duration timeout) { connect_timeout_ = timeout; }
-  void SetRetry(bool retry) { retry_ = retry; }
+  void SetConnectTimeout(Duration timeout) { connect_timeout_ = timeout; }
+  void SetConnectTimeoutCallback(const ConnectTimeoutCallback &cb) {
+    timeout_callback_ = cb;
+  }
 
   [[nodiscard]] const std::string &GetHost() const { return host_; }
   [[nodiscard]] const std::string &GetService() const { return service_; }
 
-  void AsyncConnect() {
-    resolver_.async_resolve(host_, service_, [this](std::error_code ec, const Tcp::resolver::results_type &endpoints) {
-      AsyncConnect(endpoints);
-    });
-  }
-
-  void AsyncConnect(const Tcp::resolver::results_type &endpoints) {
-    auto conn = std::make_shared<TcpConnection>(io_context_);
-    connection_ = conn;
-    InitConnection(conn);
-    if (connect_timeout_ != util::Duration(0)) {
+  void StartConnect() {
+    if (connect_timeout_ != Duration(0)) {
       timeout_timer_.expires_after(connect_timeout_);
-      timeout_timer_.async_wait([this, conn](std::error_code ec) {
+      timeout_timer_.async_wait([this](std::error_code ec) {
         if (!ec) {
-          conn->DoClose();
-          if (retry_) {
-            retry_timer_.cancel();
-          }
+          timeouted_ = true;
         }
       });
     }
-
-    DoConnect(endpoints);
+    AsyncConnect();
   }
 
-  [[nodiscard]] TcpConnectionPtr GetConnection() const { return connection_.lock(); }
+  [[nodiscard]] TcpConnectionPtr GetConnection() const {
+    return connection_.lock();
+  }
 
  private:
+  void AsyncConnect() {
+    auto conn = std::make_shared<TcpConnection>(io_context_);
+    connection_ = conn;
+    InitConnection(conn);
+    resolver_.async_resolve(host_, service_,
+                            [this, conn](std::error_code ec, const Tcp::resolver::results_type &endpoints) {
+                              DoConnect(endpoints);
+                            });
+  }
+
   void DoConnect(const Tcp::resolver::results_type &endpoints) {
     auto conn = connection_.lock();
-    asio::async_connect(conn->GetSocket(),
-                        endpoints,
-                        [this, conn](std::error_code ec, auto &&) {
-                          if (!ec) {
-                            if (connect_timeout_ != util::Duration(0)) {
-                              timeout_timer_.cancel();
-                            }
-                            if (new_conn_callback_) {
-                              new_conn_callback_(conn);
-                            }
-                          } else {
-                            if (retry_) {
-                              retry_timer_.expires_after(retry_delay_);
-                              retry_delay_ *= 2;
-                              if (retry_delay_ > kRetryMaxDelay) {
-                                retry_delay_ = kRetryMaxDelay;
-                              }
-                              retry_timer_.async_wait([this](std::error_code) {
-                                AsyncConnect();
-                              });
-                            }
-                          }
-                        });
+    asio::async_connect(conn->GetSocket(), endpoints, [this, conn](std::error_code ec, auto &&) {
+      if (!ec) {
+        if (connect_timeout_ != Duration(0)) {
+          timeout_timer_.cancel();
+        }
+        if (new_conn_callback_) {
+          new_conn_callback_(conn);
+        }
+      } else {
+        if (!timeouted_) {
+          AsyncConnect();
+        } else {
+          timeout_callback_(*this);
+        }
+      }
+    });
   }
 
   asio::io_context &io_context_;
@@ -93,12 +86,10 @@ class TcpClient : public TcpConnectionSetter {
   Tcp::resolver resolver_;
   std::weak_ptr<TcpConnection> connection_;
 
-  util::Duration connect_timeout_;
+  Duration connect_timeout_;
   asio::steady_timer timeout_timer_;
-
-  bool retry_;
-  util::Duration retry_delay_;
-  asio::steady_timer retry_timer_;
+  bool timeouted_;
+  ConnectTimeoutCallback timeout_callback_;
 };
 
 } // namespace anet::tcp

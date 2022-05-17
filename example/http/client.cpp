@@ -6,10 +6,11 @@ using anet::http::HttpClientFactory;
 using anet::http::HttpReply;
 using anet::http::HttpRequest;
 
-int i = 0;
+std::atomic<int> i = 0;
 
 void ResponseCallback(HttpClient &client, const HttpReply &reply) {
-  std::cout << "reponse cb called" << std::endl;
+  ++i;
+  std::cout << i << ": reponse cb called" << std::endl;
 //  std::cout << reply.SerializedToString() << std::endl;
 }
 

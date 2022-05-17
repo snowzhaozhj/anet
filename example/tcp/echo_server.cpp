@@ -11,7 +11,9 @@ int main() {
   });
   server.SetConnReadCallback([](const TcpConnectionPtr &conn, std::string_view data) {
     conn->Send(std::string(data));
-    conn->DoRead();
+  });
+  server.SetConnCloseCallback([](anet::tcp::TcpConnection *conn, const anet::tcp::Tcp::endpoint &endpoint) {
+    std::cout << endpoint << std::endl;
   });
   server.Listen("localhost", "9987");
   server.Run();

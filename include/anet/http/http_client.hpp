@@ -60,7 +60,7 @@ class HttpClient {
         HandleNewConn(conn);
         conn->Send(std::move(c));
       });
-      tcp_client_.AsyncConnect();
+      tcp_client_.StartConnect();
     }
   }
 
