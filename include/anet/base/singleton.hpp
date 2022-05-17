@@ -11,7 +11,7 @@ class Singleton : noncopyable {
   Singleton() = default;
   ~Singleton() = default;
 
-  T &GetInstance() {
+  static T &GetInstance() {
     static T instance;
     return instance;
   }
