@@ -24,6 +24,8 @@ target_sources(anet
             ${ANET_INC_DIR}/anet/util/io_context_pool.hpp
             ${ANET_INC_DIR}/anet/util/double_buffer.hpp
             ${ANET_INC_DIR}/anet/util/object_pool.hpp
+            ${ANET_INC_DIR}/anet/service/context.hpp
+            ${ANET_INC_DIR}/anet/service/parser.hpp
             ${ANET_INC_DIR}/anet/udp/udp_connection.hpp
             ${ANET_INC_DIR}/anet/udp/udp_connection_setter.hpp
             ${ANET_INC_DIR}/anet/udp/udp_server.hpp
@@ -64,6 +66,7 @@ add_executable(anet_test
         ${ANET_TEST_DIR}/http/http_reply_test.cpp
         ${ANET_TEST_DIR}/http/http_request_parser_test.cpp
         ${ANET_TEST_DIR}/http/http_reply_parser_test.cpp
+        ${ANET_TEST_DIR}/service/context_test.cpp
         )
 target_link_libraries(anet_test
         PRIVATE
